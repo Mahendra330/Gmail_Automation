@@ -14,914 +14,106 @@ Step2:Write a separate test which checks the inbox:
 3. Check the number of new emails in the Inbox folder 
 4. If there are new emails, mark the first one as read 5. Make sure that ‘Mark as read’ works as it should 
 
-
-
-package com.LandT.pageObjects;
-
-import static io.appium.java_client.touch.offset.PointOption.point;
+package com.LandT.Utilities;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Dimension;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.WebElement;
-import org.testng.Assert;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
-import com.LandT.Utilities.PropertiesHelper;
-import com.LandT.Utilities.SoftAssert;
-import com.LandT.Utilities.Utilities;
-import com.LandT.Utilities.xmlReader;
-import com.LandT.constants.Constants_DE;
-import com.LandT.constants.Constants_UK;
-import com.LandT.driverBase.DriverBase;
-import com.aventstack.extentreports.MediaEntityBuilder;
-import com.aventstack.extentreports.Status;
-import com.google.common.collect.ImmutableMap;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
-import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileBy;
-import io.appium.java_client.MobileElement;
-import io.appium.java_client.TouchAction;
-import io.appium.java_client.touch.WaitOptions;
-import io.appium.java_client.touch.offset.PointOption;
+public class xmlReader {
 
-public class BasePage extends DriverBase {
+	protected static final Logger logger = LogManager.getLogger(xmlReader.class.getName());
 
-	public BasePage(AppiumDriver<MobileElement> driver) {
-		super();
-	}
-
-	protected static final Logger logger = LogManager.getLogger(BasePage.class.getName());
-	protected PropertiesHelper propertiesHelper = new PropertiesHelper();
-	Utilities utilities = new Utilities();
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public By getLocatorType(String locatorType, String locatorValue) {
+	public static HashMap<String, String> readRepositoryXml(String fileName, String page, String identifier)
+			throws SAXException, IOException {
 		try {
-			if (locatorType.toString().equalsIgnoreCase("xpath")) {
-				return By.xpath(locatorValue);
-			}
-			if (locatorType.toString().equalsIgnoreCase("ID")) {
-				return By.id(locatorValue);
-			}
-			if (locatorType.toString().equalsIgnoreCase("class Name")) {
-				return By.className(locatorValue);
-			}
-			if (locatorType.toString().equalsIgnoreCase("name")) {
-				return By.name(locatorValue);
-			}
-			if (locatorType.toString().equalsIgnoreCase("iOS-Predicate")) {
-				// "type=='XCUIElementTypeButton' AND value BEGINWITH[c]
-				// 'bla' AND visible==1";
-				return MobileBy.iOSNsPredicateString(locatorValue);
-			}
-			if (locatorType.toString().equalsIgnoreCase("-ios class chain")) {
-				return MobileBy.iOSClassChain(locatorValue);
-			}
-
-		} catch (Exception e) {
-			logger.debug("failed to get locator type");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/*
-	 * public void onAutomationFailure(Throwable cause) { try { String file =
-	 * getScreenshot(); SoftAssert.testAutom.log(Status.ERROR,
-	 * "<pre><b><font colour='orange'>"+"UNKNOWN FAILURE :: "+cause.toString()+"."+
-	 * "</font></b></pre>",MediaEntityBuilder.createScreenCaptureFromPath(file).
-	 * build()); } catch (IOException e) {
-	 * 
-	 * e.printStackTrace(); }
-	 * logger.warn("Testcase Failure due to unknown issue before end of test");
-	 * Assert.fail("UNKNOWN FAILURE"); }
-	 */
-
-	public String getScreenshot() {
-		try {
-			File srcFile = getDriver().getScreenshotAs(OutputType.FILE);
-			String filename = UUID.randomUUID().toString();
-			String fullSnapShotFileName = System.getProperty("user.dir") + "//Output//ScreenShots//" + filename
-					+ ".jpg";
-			File targetFile = new File(fullSnapShotFileName);
-			FileUtils.copyFile(srcFile, targetFile);
-			return fullSnapShotFileName;
-		} catch (Exception e) {
-			logger.debug("Failed to get Screenshot");
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public By getLocator(String page, String identifier, String... parameters) {
-		try {
-			String fileName = "/src/main/resources/ObjectRepository/";
-			String platform = DriverBase.PLATFORM_NAME;
-			String locatorType = null;
-			String locatorValue = null;
-			if (platform.equalsIgnoreCase("ANDROID_APP")) {
-				fileName = fileName + "androidApp_repository.xml";
-			} else if (platform.equalsIgnoreCase("IOS_APP")) {
-				fileName = fileName + "iOSApp_repository.xml";
-			}
-			HashMap<String, String> hash = xmlReader.readRepositoryXml(fileName, page, identifier);
-			for (Map.Entry<String, String> entry : hash.entrySet()) {
-				locatorType = entry.getKey().trim();
-				locatorValue = entry.getValue().trim();
-				System.out.println("Key= " + entry.getKey() + ", Value = " + entry.getValue());
-			}
-			for (int i = 0; i < parameters.length; i++) {
-				locatorValue = locatorValue.replaceAll("#ELEMENT_" + i, parameters[i]);
-			}
-			return getLocatorType(locatorType, locatorValue);
-		} catch (Exception e) {
-			logger.debug("Failed to get Locator");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-
-		return null;
-
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public MobileElement findElement(By locator) {
-		try {
-			return getDriver().findElement(locator);
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public List<MobileElement> findElements(By locator) {
-		try {
-			return getDriver().findElements(locator);
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public ArrayList<String> getTextOfElements(By locator) {
-		ArrayList<String> values = new ArrayList<String>();
-		try {
-			List<MobileElement> ele = getDriver().findElements(locator);
-			for (int i = 0; i < ele.size(); i++) {
-				values.add(ele.get(i).getText());
-			}
-			return values;
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public String getTextOfElement(By locator) {
-		try {
-			return findElement(locator).getText();
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public String getAttributeOfElement(By locator, String attribute) {
-		try {
-			return findElement(locator).getAttribute(attribute);
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tapElementBasedOnText(By locator, String text) {
-		try {
-			List<MobileElement> ele = getDriver().findElements(locator);
-			for (int i = 0; i < ele.size(); i++) {
-				if (ele.get(i).getText().equalsIgnoreCase(text)) {
-					ele.get(i).click();
-					logger.info("User Successfully tapped on => '" + locator + "' with parameters => " + text);
-					Thread.sleep(5000);
-					break;
-				}
-			}
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public boolean isElementPresent(By locator) {
-		try {
-			boolean flag = false;
-			flag = getDriver().findElements(locator).size() >= 0;
-			logger.info("element => " + locator + "is present " + flag);
-			return flag;
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			return false;
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public boolean isElementDisplayed(By locator) {
-		try {
-			boolean flag = false;
-			flag = getDriver().findElements(locator).size() > 0;
-			logger.info("element => " + locator + "is Displayed " + flag);
-			return flag;
-
-		} catch (Exception e) {
-			logger.debug("Failed to Find Element");
-			return false;
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tapAndWait(String page, String locator, String... params) {
-		try {
-			findElement(getLocator(page, locator, params)).click();
-			if (params.length > 0) {
-				String finalParams = "";
-				for (String parameters : params) {
-					finalParams = finalParams + "+" + parameters;
-				}
-				logger.info("User Successfully tapped on => '" + locator + "' with parameters => " + finalParams);
-			} else {
-				logger.info("User Successfully tapped on => '" + locator + "'");
-			}
-			Thread.sleep(3000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*Added by Mahendra extra
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public List<WebElement> getWebElements(By locator) {
-		try {
-			return (List<WebElement>) findElement(locator);
-			//logger.info("User Successfully tapped on => '" + locator + "'");
-			//Thread.sleep(2000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	/*Added by Mahendra extra
-	 * Description: PARAMETERS: RETURNS
-	 */
-	public WebElement getWebElement(By locator) {
-		try {
-			return findElement(locator);
-			//logger.info("User Successfully tapped on => '" + locator + "'");
-			//Thread.sleep(2000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tapAndWait(By locator) {
-		try {
-			findElement(locator).click();
-			logger.info("User Successfully tapped on => '" + locator + "'");
-			Thread.sleep(3000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tap(String page, String locator, String... params) {
-		try {
-			findElement(getLocator(page, locator, params)).click();
-			if (params.length > 0) {
-				String finalParams = "";
-				for (String parameters : params) {
-					finalParams = finalParams + parameters;
-				}
-				logger.info("User Successfully tapped on => '" + locator + "' with parameters => " + finalParams);
-			} else {
-				logger.info("User Successfully tapped on => '" + locator + "'");
-			}
-			Thread.sleep(3000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tap(By locator) {
-		try {
-			findElement(locator).click();
-			logger.info("User Successfully tapped on => '" + locator + "'");
-			Thread.sleep(3000);
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void tapUsingActionClass(String page, String locator, String... params) {
-		try {
-			MobileElement element = findElement(getLocator(page, locator, params));
-			int xPoint = element.getLocation().getX();
-			int yPoint = element.getLocation().getY();
-			TouchAction touchAction = new TouchAction(getDriver());
-			touchAction.tap(point(xPoint, yPoint)).perform();
-			// touchAction.tap(point(xPoint,yPoint)).perform();
-			logger.info("User Successfully tapped on => '" + locator + "'");
-		} catch (Exception e) {
-			logger.debug("Failed to tapped on => '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*
-	 * Description: PARAMETERS: RETURNS
-	 */
-
-	public void enterText(String page, String locator, String text, String... params) {
-		try {
-			findElement(getLocator(page, locator, params)).sendKeys(text);
-			logger.info("User Successfully entered => '" + text + "' in '" + locator + "'");
-			Thread.sleep(3000);
-		} catch (Exception e) {
-			logger.debug("Failed to entere text => '" + text + "' in '" + locator + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-	}
-
-	/*
-	 * Description: to wait explicitly for a particular element PARAMETERS:By
-	 * locator,int time RETURN:boolean
-	 */
-
-	public void waitExplicitly(By locator, int time) {
-		try {
-
-			for (int i = 0; i < 5; i++) {
-				List<MobileElement> element = findElements(locator);
-				if (!(element.size() == 0)) {
-					logger.debug(locator + "found in explicit wait");
-					break;
-				} else {
-					Thread.sleep(5000);
-				}
-			}
-
-		} catch (Exception e) {
-			logger.debug("Error occured while clicking element '" + locator.toString() + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-
-	}
-
-	public void waitForElementPresent(int secs, String page, String locator, String... params) {
-		try {
-			System.out.println("waiting for locator " + locator);
-			waitExplicitly(getLocator(page, locator, params), secs);
-		} catch (NoSuchElementException e) {
-			System.out.println("Element -'" + locator.toString() + "' is not found");
-			onAutomationFailure(e);
-		}
-	}
-
-	/**
-	 * DESCRIPTION: PARAMETERS: RETURN:
-	 */
-
-	public void onAutomationFailure(Throwable cause) {
-		try {
-			String file = getScreenshot();
-			SoftAssert.testAutom
-					.log(Status.ERROR,
-							"<pre><b><font color='orange'>" + "UNKNOWN FAILURE :: " + cause.toString() + "."
-									+ "</font></b></pre>",
-							MediaEntityBuilder.createScreenCaptureFromPath(file).build());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		logger.warn("Test Case failure due to unkown issue before end of test");
-		Assert.fail("UNKNOWN FAILURE");
-	}
-
-	/**
-	 * DESCRIPTION: PARAMETERS: RETURN:
-	 * 
-	 * @throws IOException
-	 */
-
-	public void installAppFromTestFlight(String env) throws IOException {
-		getDriver().removeApp(SHELLIOSAPPBUNDLEID);
-		getDriver().terminateApp("com.apple.TestFlight");
-		getDriver().activateApp("com.apple.TestFlight");
-		if (getDriver().toString().contains(SHELLIOSAPPBUNDLEID)) {
-			reInitiateiOSDriver("com.apple.TestFlight", EXECUTION_CONFIG_FILE, "en", "en-GB");
-		}
-		tapAndWait("TestFlight", "TARGET_APP", env.toUpperCase());
-		tapAndWait("TestFlight", "INSTALL_BUTTON", getTestData("Install_text"));
-		completeTestFlightAppDownloadProcess();
-	}
-
-	/**
-	 * DESCRIPTION: PARAMETERS: RETURN:
-	 */
-
-	public String getTestData(String key) {
-		String dataValue = null;
-		String country = TARGET_APP_REGION;
-		try {
-			/*
-			 * PropertiesHelper prop = new PropertiesHelper(); String fileName =
-			 * System.getProperty("user.dir") + "/src/main/resources/Config/TestData/" +
-			 * ENVIRONMENT_NAME + "/testData_" + TARGET_APP_REGION + ".properties";
-			 * dataValue = prop.getPropertyValue(fileName, key); //
-			 * System.out.println("test data Key => '" + key + "', and test data Value => '"
-			 * + dataValue+ "'");
-			 */
-			if (country.equalsIgnoreCase("UK")) {
-				dataValue = readConstantFile(Constants_UK.class.getFields(), key.toUpperCase());
-			} else if (country.equalsIgnoreCase("DE")) {
-				dataValue = readConstantFile(Constants_DE.class.getFields(), key.toUpperCase());
-
-			}
-			return dataValue.trim();
-		} catch (Exception e) {
-			logger.debug("failed to get testData => '" + key + "', and test data Value => '" + dataValue + "'");
-			onAutomationFailure(e);
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/**
-	 * DESCRIPTION: PARAMETERS: RETURN:
-	 * 
-	 * @throws IOException
-	 * @throws ConfigurationException
-	 */
-
-	public String newUser(String firstName) throws ConfigurationException, IOException {
-		Date date = new Date();
-		Calendar cal = new GregorianCalendar();
-		cal.setTimeZone(TimeZone.getTimeZone("America/New_York"));
-		cal.setTime(new Date());
-		SimpleDateFormat sdf = new SimpleDateFormat("hms");
-		String formattedDate = sdf.format(date);
-		String email = firstName.toLowerCase() + "+" + TARGET_APP_REGION + "_" + ENVIRONMENT_NAME + "_" + formattedDate
-				+ "@gmail.com";
-		propertiesHelper.updateRuntimeDataPropertyFile(TARGET_APP_REGION + "_" + "dynamicEmailId", email);
-		return email;
-	}
-
-	/**
-	 * DESCRIPTION: PARAMETERS: RETURN:
-	 * 
-	 * @throws IOException
-	 * @throws ConfigurationException
-	 */
-	public String newUser(String firstName, String typeOfUser) throws ConfigurationException, IOException {
-		String user = "";
-		if (!typeOfUser.equalsIgnoreCase("SME")) {
-			user = typeOfUser + ENVIRONMENT_NAME;
-		} else {
-			user = TARGET_APP_REGION + ENVIRONMENT_NAME;
-		}
-		Date date = new Date();
-		Calendar cal = new GregorianCalendar();
-		cal.setTimeZone(TimeZone.getTimeZone("America/New_York"));
-		cal.setTime(new Date());
-		SimpleDateFormat sdf = new SimpleDateFormat("hms");
-		String formattedDate = sdf.format(date);
-		String email = firstName.toLowerCase() + "+" + user + "_" + formattedDate + "@gmail.com";
-		propertiesHelper.updateRuntimeDataPropertyFile(user + formattedDate + "_" + "dynamicEmailId", email);
-		return email;
-	}
-
-	/**
-	 * DESCRIPTION:To Scroll Page up n number of times PARAMETERS: -- int num
-	 * RETURN:
-	 * 
-	 * @throws Exception
-	 */
-	public void scrollPageUPOrDown(String direction, int num, double start, double end, int waitTimeinMS)
-			throws Exception {
-		try {
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double screenHeightStart = dimensions.getHeight() * start;
-			int scrollStart = screenHeightStart.intValue();
-			Double screenHeightEnd = dimensions.getHeight() * end;
-			int scrollEnd = screenHeightEnd.intValue();
-			TouchAction swipe = new TouchAction(getDriver());
-			for (int i = 0; i < num; i++) {
-				System.out
-						.println("Swiping page in " + direction + " direction for '" + (i + 1) + "' times from offset '"
-								+ Integer.toString(scrollStart) + "' to offset '" + Integer.toString(scrollEnd) + "'");
-				swipe.press(PointOption.point(0, scrollStart))
-						.waitAction(new WaitOptions().withDuration(Duration.ofMillis(waitTimeinMS)))
-						.moveTo(PointOption.point(0, scrollEnd)).release().perform();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-public void ScrollIntoView(String containedText) {
-	//driver.findElementByAndroidUIAutomator("new UiScrollable(new UiSelector()).scrollIntoView(text(\"Brazil\"));");
-	   driver.findElement(MobileBy.AndroidUIAutomator("new UiScrollable(new UiSelector().scrollable(true).instance(0)).scrollIntoView(new UiSelector().textMatches(\"" + containedText + "\").instance(0))"));  
-		
-}
-	/**
-	 * 
-	 * DESCRIPTION:To Scroll Page up n number of times PARAMETERS: -- int num
-	 * RETURN:
-	 * 
-	 * @throws Exception
-	 */
-	public void scrollPageLeftOrRight(String direction, int num, double start, double end, int waitTimeinMS, double y)
-			throws Exception {
-		try {
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double screenHeightStart = dimensions.getWidth() * start;
-			int scrollStart = screenHeightStart.intValue();
-			Double screenHeightEnd = dimensions.getWidth() * end;
-			int scrollEnd = screenHeightEnd.intValue();
-			Double screenY = dimensions.getHeight() * start;
-			int scrollY = screenY.intValue();
-			TouchAction swipe = new TouchAction(getDriver());
-			for (int i = 0; i < num; i++) {
-				System.out
-						.println("Swiping page in " + direction + " direction for '" + (i + 1) + "' times from offset '"
-								+ Integer.toString(scrollStart) + "' to offset '" + Integer.toString(scrollEnd) + "'");
-				swipe.press(PointOption.point(scrollStart, scrollY))
-						.waitAction(new WaitOptions().withDuration(Duration.ofMillis(waitTimeinMS)))
-						.moveTo(PointOption.point(scrollEnd, scrollY)).release().perform();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * DESCRIPTION:To Scroll Page up n number of times using x co-ordinates of
-	 * locator PARAMETERS: -- int num RETURN:
-	 * 
-	 * @throws Exception
-	 */
-	public void scrollPageUPOrDownUsingXCoordinatesOfLocator(String direction, int num, double start, double end,
-			By locator) throws Exception {
-		try {
-			String p = Integer.toString(getDriver().findElement(locator).getLocation().getX());
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double screenHeightStart = dimensions.getHeight() * start;
-			Double screenWidthStart = Double.parseDouble(p);
-			int scrollWidthStart = screenWidthStart.intValue();
-			int scrollStart = screenHeightStart.intValue();
-			Double screenHeightEnd = dimensions.getHeight() * end;
-			int scrollEnd = screenHeightEnd.intValue();
-
-			TouchAction swipe = new TouchAction(getDriver());
-			for (int i = 0; i < num; i++) {
-				System.out
-						.println("Swiping page in " + direction + " direction for '" + (i + 1) + "' times from offset '"
-								+ Integer.toString(scrollStart) + "' to offset '" + Integer.toString(scrollEnd) + "'");
-				swipe.press(PointOption.point(scrollWidthStart, scrollStart))
-						.waitAction(new WaitOptions().withDuration(Duration.ofMillis(500)))
-						.moveTo(PointOption.point(scrollWidthStart, scrollEnd)).release().perform();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * DESCRIPTION:To Scroll Page up n number of times PARAMETERS: -- int num
-	 * RETURN:
-	 * 
-	 * @throws Exception
-	 */
-	public void scrollPageUPOrDownUsingXCoordinates(String direction, int num, double start, double end, double width)
-			throws Exception {
-		try {
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double screenHeightStart = dimensions.getHeight() * start;
-			Double screenWidthStart = dimensions.getWidth() * width;
-			int scrollWidthStart = screenWidthStart.intValue();
-			int scrollStart = screenHeightStart.intValue();
-			Double screenHeightEnd = dimensions.getHeight() * end;
-			int scrollEnd = screenHeightEnd.intValue();
-			TouchAction swipe = new TouchAction(getDriver());
-			for (int i = 0; i < num; i++) {
-				System.out
-						.println("Swiping page in " + direction + " direction for '" + (i + 1) + "' times from offset '"
-								+ Integer.toString(scrollStart) + "' to offset '" + Integer.toString(scrollEnd) + "'");
-				swipe.press(PointOption.point(scrollWidthStart, scrollStart))
-						.waitAction(new WaitOptions().withDuration(Duration.ofMillis(500)))
-						.moveTo(PointOption.point(scrollWidthStart, scrollEnd)).release().perform();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * DESCRIPTION:To Scroll Page up n number of times PARAMETERS: -- int num
-	 * RETURN:
-	 * 
-	 * @throws Exception
-	 */
-	public void scrollPageUsingXAndYCoordinates(String direction, int num, double startx, double starty, double endx,
-			double endy) throws Exception {
-		try {
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double xs = dimensions.getWidth() * startx;
-			int xstart = xs.intValue();
-			Double ys = dimensions.getHeight() * starty;
-			int ystart = ys.intValue();
-			Double xe = dimensions.getWidth() * endx;
-			int xend = xe.intValue();
-			Double ye = dimensions.getHeight() * endy;
-			int yend = ye.intValue();
-			TouchAction swipe = new TouchAction(getDriver());
-			for (int i = 0; i < num; i++) {
-				System.out.println("Swiping page in " + direction + " direction for '" + (i + 1)
-						+ "' times from offset '" + ("start x => '" + startx + "' start y => " + starty + "'")
-						+ "' to offset '" + ("start x => '" + endx + "' start y => " + endy + "'") + "'");
-				swipe.press(PointOption.point(xstart, ystart))
-						.waitAction(new WaitOptions().withDuration(Duration.ofMillis(500)))
-						.moveTo(PointOption.point(xend, yend)).release().perform();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * @author vikas.prasad DESCRIPTION:To Scroll Page up n number of times
-	 *         PARAMETERS: -- int num RETURN:
-	 * @throws Exception
-	 */
-	public void tapUsingXAndYCoordinates(double x, double y) throws Exception {
-		try {
-			Dimension dimensions = getDriver().manage().window().getSize();
-			Double xs = dimensions.getWidth() * x;
-			int xPoint = xs.intValue();
-			Double ys = dimensions.getHeight() * y;
-			int yPoint = ys.intValue();
-			TouchAction touchAction = new TouchAction(getDriver());
-			touchAction.tap(point(xPoint, yPoint)).perform();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * DESCRIPTION:To Tap device back button PARAMETERS: -- RETURN: void
-	 * 
-	 * @throws Exception
-	 */
-	public void tapNativeBackButtonOnDevice() throws Exception {
-		try {
-			getDriver().navigate().back();
-			logger.info("Native back button on Device is clicked");
-		} catch (Exception e) {
-			logger.debug("error occurred while tapping the native back button on device");
-			e.printStackTrace();
-			onAutomationFailure(e);
-		}
-	}
-
-	/**
-	 * DESCRIPTION: To switch to Native/Web View PARAMETERS: RETURN:
-	 * 
-	 
-	 */
-	public void switchToView(String view) {
-		Set<String> contextNames = getDriver().getContextHandles();
-		System.out.println(contextNames);
-		for (String context : contextNames) {
-			if (context.contains(view)) {
-				getDriver().context(context);
-				logger.info("switched to ->'" + context + "'");
-				break;
-			}
-		}
-	}
-
-	/**
-	 * DESCRIPTION: To press Search button on soft keyboard (OEM Keyboard)
-	 * PARAMETERS: -- RETURN:
-	 * 
-	 * @throws Exception
-	 */
-
-	public void androidKeyboardOperationSearch() throws Exception {
-		try {
-			String command = "adb -s input keyevent KEYCODE_SEARCH";
-			runCommand(command);
-			logger.info("Search button on Soft Keyboard is clicked");
-		} catch (Exception e) {
-			onAutomationFailure(e);
-		}
-	}
-
-	/**
-	 * DESCRIPTION: To press Done button on soft keyboard (OEM Keyboard) PARAMETERS:
-	 * RETURN:
-	 * 
-	 * @throws Exception
-	 */
-
-	public void keyboardOperationEnter() throws Exception {
-		try {
-			getDriver().executeScript("mobile: performEditorAction", ImmutableMap.of("action", "Go"));
-			Thread.sleep(5000);
-			logger.info("Done button on Soft Keyboard is clicked");
-		} catch (Exception e) {
-			onAutomationFailure(e);
-		}
-	}
-
-	/**
-	 * DESCRIPTION: To Pause execution PARAMETERS: RETURN:
-	 * 
-	 * @throws Exception
-	 */
-
-	public void pauseExecutionInSec(int sec) throws Exception {
-		try {
-			logger.info("Pausing execution for =>" + sec + " seconds");
-			Thread.sleep(sec * 1000);
-		} catch (Exception e) {
-			onAutomationFailure(e);
-		}
-	}
-
-	public void completeTestFlightAppDownloadProcess() throws MalformedURLException, IOException {
-		if (isElementPresent(getLocator("TestFlight", "CANCEL_DOWNLOAD", getTestData("CancelDownload_text")))) {
-			for (int i = 0; i < 15; i++) {
-				if (isElementDisplayed(getLocator("TestFlight", "OPEN_APP", getTestData("OpenApp_Text")))) {
-					tapAndWait("TestFlight", "OPEN_APP", getTestData("OpenApp_Text"));
-					if (isElementDisplayed(getLocator("TestFlight", "NOTIFICATION_ALLOW_OR_DENY_BUTTON",
-							getTestData("Notification_Allow_Button")))) {
-						tapAndWait("TestFlight", "NOTIFICATION_ALLOW_OR_DENY_BUTTON",
-								getTestData("Notification_Allow_Button"));
-					}
-					reInitiateiOSDriver(SHELLIOSAPPBUNDLEID, EXECUTION_CONFIG_FILE, language, locale);
-					break;
-				} else {
-					try {
-						logger.info("Waiting for 5 seconds");
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
+			HashMap<String, String> map = new HashMap<>();
+			map.clear();
+			String locatorType;
+			String locatorValue;
+			File xmlFile = new File(System.getProperty("user.dir") + fileName);
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder;
+
+			dBuilder = dbFactory.newDocumentBuilder();
+
+			Document doc = dBuilder.parse(xmlFile);
+			doc.getDocumentElement().normalize();
+			NodeList nList = doc.getElementsByTagName("page");
+			outerloop: for (int temp = 0; temp < nList.getLength(); temp++) {
+				Node nNode = nList.item(temp);
+
+				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+					Element eElement = (Element) nNode;
+					if (eElement.getAttribute("pageName").equalsIgnoreCase(page)) {
+						NodeList nListNew = eElement.getElementsByTagName("element");
+						for (int tempNew = 0; tempNew < nListNew.getLength(); tempNew++) {
+							Node nNodeNew = nListNew.item(tempNew);
+							if (nNodeNew.getNodeType() == Node.ELEMENT_NODE) {
+								Element eElementNew = (Element) nNodeNew;
+								if (eElementNew.getAttribute("locatorName").equalsIgnoreCase(identifier)) {
+									locatorType = eElementNew.getAttribute("locatorType");
+									locatorValue = eElementNew.getElementsByTagName("locator").item(0).getTextContent();
+									map.put(locatorType, locatorValue);
+									break outerloop;
+								}
+							}
+						}
 					}
 				}
 			}
-		}
-	}
-
-	public void relaunchApplication() throws Exception {
-		if (PLATFORM_NAME.contains("ANDROID_APP")) {
-			forceStopAndroidApp(SHELLANDROIDPACKAGE);
-			launchAndroidApp(SHELLANDROIDPACKAGE, SHELLANDROIDACTIVITY);
-		} else if (PLATFORM_NAME.contains("IOS_APP")) {
-			getDriver().terminateApp(SHELLIOSAPPBUNDLEID);
-			getDriver().activateApp(SHELLIOSAPPBUNDLEID);
-		}
-	}
-
-	public String readConstantFile(Field[] fields, String key) throws IllegalArgumentException, IllegalAccessException {
-		for (Field f : fields) {
-			Object obj = f.getName();
-			String keyOne = String.valueOf(obj);
-			if (keyOne.equalsIgnoreCase(key)) {
-				Object objValue = f.get(keyOne);
-				String value = String.valueOf(objValue);
-				return value;
-			}
+			return map;
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
 		}
 		return null;
-
 	}
 
+	public static HashMap<String, String> readTestDataXml(String fileName, String key)
+			throws SAXException, IOException {
+		try {
+			HashMap<String, String> map = new HashMap<>();
+			map.clear();
+			String dataValue;
+			File xmlFile = new File(System.getProperty("user.dir") + fileName);
+			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+			Document doc = dBuilder.parse(xmlFile);
+			doc.getDocumentElement().normalize();
+			NodeList nList = doc.getElementsByTagName("data");
+			for (int temp = 0; temp < nList.getLength(); temp++) {
+				Node nNode = nList.item(temp);
+
+				if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+					Element eElement = (Element) nNode;
+					if (eElement.getAttribute("key").equalsIgnoreCase(key)) {
+						dataValue = eElement.getElementsByTagName("value").item(0).getTextContent();
+						map.put(key, dataValue);
+						break;
+					}
+				}
+			}
+			return map;
+
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 }
+
 
 
 
